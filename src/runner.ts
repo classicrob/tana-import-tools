@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { RoamConverter } from './converters/roam/index';
 import { TanaIntermediateFile } from './types/types';
 import { WorkflowyConverter } from './converters/workflowy';
+import { TwitterConverter } from './converters/twitter';
 
 const fileType = process.argv[2];
 const file = process.argv[3];
@@ -39,6 +40,9 @@ let tanaIntermediteFile = undefined;
 switch (fileType) {
   case 'roam':
     tanaIntermediteFile = new RoamConverter().convert(contents);
+    break;
+  case 'twitter':
+    tanaIntermediteFile = new TwitterConverter().convert(contents);
     break;
   case 'workflowy':
     tanaIntermediteFile = new WorkflowyConverter().convert(contents);
