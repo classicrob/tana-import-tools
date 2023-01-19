@@ -1,7 +1,7 @@
 import { exit } from 'process';
 import * as fs from 'fs';
 
-import { RoamConverter } from './converters/roam/index';
+import { RoamConverter } from './converters/roam';
 import { TanaIntermediateFile } from './types/types';
 import { WorkflowyConverter } from './converters/workflowy';
 import { TwitterConverter } from './converters/twitter';
@@ -19,7 +19,7 @@ if (!file) {
   exit(0);
 }
 
-const supportedTypes = ['roam', 'workflowy'];
+const supportedTypes = ['roam', 'workflowy', 'twitter'];
 if (!supportedTypes.includes(fileType)) {
   console.log(`File type: ${fileType} is not supported`);
   exit(0);

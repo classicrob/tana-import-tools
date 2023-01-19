@@ -5,3 +5,5 @@ dist
 .env
 datasets
 yarn-error.log
+tweets.json
+tweets.json.tif.json
