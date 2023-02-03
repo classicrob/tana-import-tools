@@ -2,7 +2,7 @@ import { type } from 'os';
 import { arrayBuffer } from 'stream/consumers';
 import { TanaIntermediateFile, TanaIntermediateNode, TanaIntermediateSummary } from '../../types/types';
 import { idgenerator } from '../../utils/utils';
-import { createField, createMentionsField } from './nodeCreators/createField';
+import { createField, createMentionsField, createMediaField } from './nodeCreators/createField';
 interface Tweet {
   tweet: {
     full_text: string;
@@ -70,28 +70,6 @@ function createMediaNode(media_url: string): TanaIntermediateNode {
 }
 
 // create a function that creates Tana Intermediate Nodes for all people mentioned, and then puts in refs to them in the field value.
-
-function createMediaField(name: string, value: string | string[]): TanaIntermediateNode {
-  const valueArray = Array.isArray(value) ? value : [value];
-  return {
-    uid: idgenerator(),
-    name: name,
-    createdAt: new Date().getTime(),
-    editedAt: new Date().getTime(),
-    type: 'field',
-    //map value array into an array of nodes
-    children: valueArray.map((value) => {
-      return {
-        uid: idgenerator(),
-        name: 'image',
-        createdAt: new Date().getTime(),
-        editedAt: new Date().getTime(),
-        type: 'image',
-        mediaUrl: value,
-      };
-    }),
-  };
-}
 
 function createPerson(tweet: Tweet): TanaIntermediateNode {
   const person = tweet.tweet.entities?.user_mentions[0];
