@@ -71,18 +71,6 @@ function createMediaNode(media_url: string): TanaIntermediateNode {
 
 // create a function that creates Tana Intermediate Nodes for all people mentioned, and then puts in refs to them in the field value.
 
-function createPerson(tweet: Tweet): TanaIntermediateNode {
-  const person = tweet.tweet.entities?.user_mentions[0];
-  return {
-    uid: person.id_str,
-    name: person.screen_name,
-    createdAt: new Date().getTime(),
-    editedAt: new Date().getTime(),
-    type: 'node',
-    children: [createField('Name', person.name), createField('user id', person.id_str)],
-  };
-}
-
 function createPersonNode(person: TwitterUser): TanaIntermediateNode {
   return {
     uid: person.id_str,
@@ -137,6 +125,7 @@ function createTweetNode(tweet: Tweet): TanaIntermediateNode {
         type: 'field',
         children: [createDateNode(tweet.tweet.created_at)],
       },
+      createField('Tweet URL', `https://twitter.com/RobertHaisfield/status/${tweet.tweet.id_str}`),
     ],
   };
 }
@@ -169,10 +158,15 @@ export class TwitterConverter {
         values: [],
         count: 1,
       },
+      {
+        name: 'Tweet URL',
+        values: [],
+        count: 1,
+      },
     ];
-    const arrayOfUsers = createPeopleArray(json.slice(0, 300));
+    const arrayOfUsers = createPeopleArray(json.slice(0, 2000));
     const personArray = arrayOfUsers.map(createPersonNode);
-    const tweetNodes = json.slice(0, 300).map(createTweetNode);
+    const tweetNodes = json.slice(0, 2000).map(createTweetNode);
     // Map takes a function reference, and applies it to each element in the array. If I called the function, then the outcome of that function is what's used.
     // const nodes = json.map((tweetObject: Tweet) => createTweetNode(tweetObject)); this is passing an anonymous lambda function, equivalent to above
     // rootLevelNodes are the first nodes in any thread. Date is in a field, not on day node.
