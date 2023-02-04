@@ -82,10 +82,36 @@ function createPersonNode(person: TwitterUser): TanaIntermediateNode {
   };
 }
 
+// This function checks if a tweet has entities.urls.expanded_url that starts with "https://twitter.com/RobertHaisfield/status/".
+// If it does, return the array of tweet ids that match the condition. If not, return undefined.
+// This function is looking for Robert Haisfield's quote tweets of himself.
+
+function findQuoteTweet(tweet: Tweet): string[] | undefined {
+  const urls = tweet.tweet.entities.urls;
+  if (urls.length > 0) {
+    const quoteTweets = urls
+      .filter((url: { expanded_url: string }) =>
+        url.expanded_url.startsWith('https://twitter.com/RobertHaisfield/status/'),
+      )
+      .map((url: { expanded_url: string } | undefined) => {
+        if (!url) {
+          return;
+        }
+        return url.expanded_url && url.expanded_url.indexOf('?') > -1
+          ? url.expanded_url.split('/').pop().split('?')[0]
+          : url.expanded_url.split('/').pop();
+      });
+    if (quoteTweets.length > 0) {
+      console.log(quoteTweets);
+    }
+  }
+  return undefined;
+}
+
 function createTweetNode(tweet: Tweet): TanaIntermediateNode {
   const tweetTime = new Date(tweet.tweet.created_at).getTime();
   return {
-    uid: idgenerator(),
+    uid: tweet.tweet.id_str,
     name: tweet.tweet.full_text,
     createdAt: tweetTime,
     editedAt: tweetTime,
@@ -163,10 +189,21 @@ export class TwitterConverter {
         values: [],
         count: 1,
       },
+      {
+        name: 'Name',
+        values: [],
+        count: 1,
+      },
+      {
+        name: 'user id',
+        values: [],
+        count: 1,
+      },
     ];
     const arrayOfUsers = createPeopleArray(json.slice(0, 2000));
     const personArray = arrayOfUsers.map(createPersonNode);
     const tweetNodes = json.slice(0, 2000).map(createTweetNode);
+    json.slice(0, 300).map(findQuoteTweet);
     // Map takes a function reference, and applies it to each element in the array. If I called the function, then the outcome of that function is what's used.
     // const nodes = json.map((tweetObject: Tweet) => createTweetNode(tweetObject)); this is passing an anonymous lambda function, equivalent to above
     // rootLevelNodes are the first nodes in any thread. Date is in a field, not on day node.

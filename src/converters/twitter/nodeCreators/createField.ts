@@ -35,3 +35,25 @@ export function createMentionsField(node: TanaIntermediateNode | TanaIntermediat
     children: Array.isArray(node) ? node : [node],
   };
 }
+
+export function createMediaField(name: string, value: string | string[]): TanaIntermediateNode {
+  const valueArray = Array.isArray(value) ? value : [value];
+  return {
+    uid: idgenerator(),
+    name: name,
+    createdAt: new Date().getTime(),
+    editedAt: new Date().getTime(),
+    type: 'field',
+    //map value array into an array of nodes
+    children: valueArray.map((value) => {
+      return {
+        uid: idgenerator(),
+        name: 'image',
+        createdAt: new Date().getTime(),
+        editedAt: new Date().getTime(),
+        type: 'image',
+        mediaUrl: value,
+      };
+    }),
+  };
+}
