@@ -79,34 +79,44 @@ function createPersonNode(person: TwitterUser): TanaIntermediateNode {
     editedAt: new Date().getTime(),
     type: 'node',
     children: [createField('Name', person.name), createField('user id', person.id_str)],
+    supertags: ['Twitter User'],
   };
 }
 
-// This function checks if a tweet has entities.urls.expanded_url that starts with "https://twitter.com/RobertHaisfield/status/".
-// If it does, return the array of tweet ids that match the condition. If not, return undefined.
+// This function checks if a tweet has entities.urls.expanded_url
+// that starts with "https://twitter.com/RobertHaisfield/status/".
+// If it does, return the array of tweet ids that match the condition.
+// If not, return undefined.
 // This function is looking for Robert Haisfield's quote tweets of himself.
 
-function findQuoteTweet(tweet: Tweet): string[] | undefined {
+function findQuoteTweet(tweet: Tweet): any {
   const urls = tweet.tweet.entities.urls;
   if (urls.length > 0) {
     const quoteTweets = urls
       .filter((url: { expanded_url: string }) =>
         url.expanded_url.startsWith('https://twitter.com/RobertHaisfield/status/'),
       )
-      .map((url: { expanded_url: string } | undefined) => {
-        if (!url) {
-          return;
-        }
-        return url.expanded_url && url.expanded_url.indexOf('?') > -1
-          ? url.expanded_url.split('/').pop().split('?')[0]
-          : url.expanded_url.split('/').pop();
-      });
+      .map((url: { expanded_url: string }) => url.expanded_url.split('/').pop());
+
     if (quoteTweets.length > 0) {
-      console.log(quoteTweets);
+      // console.log(quoteTweets);
+      return quoteTweets;
     }
   }
   return undefined;
 }
+
+// convert an array of arrays into a single array
+
+// take quoteTweets and make sure that each string only
+
+// function splitOutTheQuestionMarks(qtArray: string[]): string[] {
+//  return qtArray.flatMap((qt) => qt.split('?'));
+// }
+
+// function qtsIWant(tweet: Tweet): string[] | undefined {
+//   splitOutTheQuestionMarks(findQuoteTweet(tweet));
+// }
 
 function createTweetNode(tweet: Tweet): TanaIntermediateNode {
   const tweetTime = new Date(tweet.tweet.created_at).getTime();
@@ -200,12 +210,48 @@ export class TwitterConverter {
         count: 1,
       },
     ];
+    const supertags = [
+      {
+        uid: 'Rob Tweets',
+        name: 'Rob Tweets',
+      },
+      {
+        uid: 'Twitter User',
+        name: 'Twitter User',
+      },
+    ];
     const arrayOfUsers = createPeopleArray(json.slice(0, 2000));
     const personArray = arrayOfUsers.map(createPersonNode);
+
     const tweetNodes = json.slice(0, 2000).map(createTweetNode);
-    json.slice(0, 300).map(findQuoteTweet);
-    // Map takes a function reference, and applies it to each element in the array. If I called the function, then the outcome of that function is what's used.
-    // const nodes = json.map((tweetObject: Tweet) => createTweetNode(tweetObject)); this is passing an anonymous lambda function, equivalent to above
+    // console.log(
+    //   json.slice(0, 300).forEach((tweet: Tweet) => {
+    //     return findQuoteTweet(tweet);
+    //   }),
+    // );
+
+    console.log(
+      json
+        .slice(0, 300)
+        .map(findQuoteTweet)
+        .flat()
+        .filter((el: string | undefined) => typeof el === 'string'),
+    );
+
+    const quoteTweets = json
+      .slice(0, 300)
+      .map(findQuoteTweet)
+      .flat()
+      .filter((el: string | undefined) => typeof el === 'string');
+
+    // if a quote tweet has an ? in it, remove the ? and all the text after it from the string. Return the new array.
+    const quoteTweetsNoQuestionMarks = quoteTweets.map((qt: any) => qt.split('?')[0]);
+    console.log(quoteTweetsNoQuestionMarks);
+
+    // Map takes a function reference, and applies it to each element in the array.
+    // If I called the function, then the outcome of that function is what's used.
+    // const nodes = json.map((tweetObject: Tweet) => createTweetNode(tweetObject));
+    // this is passing an anonymous lambda function, equivalent to above
     // rootLevelNodes are the first nodes in any thread. Date is in a field, not on day node.
 
     const nodes = personArray.concat(tweetNodes);
