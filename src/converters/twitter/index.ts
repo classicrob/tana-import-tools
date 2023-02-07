@@ -2,7 +2,8 @@ import { type } from 'os';
 import { arrayBuffer } from 'stream/consumers';
 import { TanaIntermediateFile, TanaIntermediateNode, TanaIntermediateSummary } from '../../types/types';
 import { idgenerator } from '../../utils/utils';
-import { createField, createMentionsField, createMediaField } from './nodeCreators/createField';
+import { createField, createMentionsField, createMediaField, createFieldFromNodes } from './nodeCreators/createField';
+import * as fs from 'fs';
 interface Tweet {
   tweet: {
     full_text: string;
@@ -22,9 +23,12 @@ interface Tweet {
         },
       ];
       urls: [];
-      media?: {
-        media_url: string;
-      };
+      media?: [
+        {
+          media_url: string;
+          media_url_https: string;
+        },
+      ];
     };
   };
 }
@@ -89,21 +93,14 @@ function createPersonNode(person: TwitterUser): TanaIntermediateNode {
 // If not, return undefined.
 // This function is looking for Robert Haisfield's quote tweets of himself.
 
-function findQuoteTweet(tweet: Tweet): any {
+function extractQuoteTweetID(tweet: Tweet): string[] {
   const urls = tweet.tweet.entities.urls;
-  if (urls.length > 0) {
-    const quoteTweets = urls
-      .filter((url: { expanded_url: string }) =>
-        url.expanded_url.startsWith('https://twitter.com/RobertHaisfield/status/'),
-      )
-      .map((url: { expanded_url: string }) => url.expanded_url.split('/').pop());
-
-    if (quoteTweets.length > 0) {
-      // console.log(quoteTweets);
-      return quoteTweets;
-    }
-  }
-  return undefined;
+  const quoteTweets = urls
+    .filter((url: { expanded_url: string }) =>
+      url.expanded_url.startsWith('https://twitter.com/RobertHaisfield/status/'),
+    )
+    .map((url: { expanded_url: string }) => url.expanded_url.split('/').slice(-1)[0].split('?')[0]);
+  return quoteTweets;
 }
 
 // convert an array of arrays into a single array
@@ -117,6 +114,13 @@ function findQuoteTweet(tweet: Tweet): any {
 // function qtsIWant(tweet: Tweet): string[] | undefined {
 //   splitOutTheQuestionMarks(findQuoteTweet(tweet));
 // }
+let json: Tweet[];
+// query the JSON file for the tweet with the id_str that matches the quote tweet id_str. Return that tweet interface.
+// Could take the parsed json object as a parameter, or could read the file in here.
+function findMatchingTweet(tweetID: string): Tweet | undefined {
+  const matchingTweet = json.find((tweet: Tweet) => tweet.tweet.id_str === tweetID);
+  return matchingTweet;
+}
 
 function createTweetNode(tweet: Tweet): TanaIntermediateNode {
   const tweetTime = new Date(tweet.tweet.created_at).getTime();
@@ -145,14 +149,33 @@ function createTweetNode(tweet: Tweet): TanaIntermediateNode {
         ],
       },
       // How do I insert the person nodes here?
-      createMentionsField(tweet.tweet.entities.user_mentions.map(createPersonNode)),
-      //createField(
-      //  'People Mentioned',
-      //  tweet.tweet.entities.user_mentions.map((user) => user.name),
-      //),
-      ...(tweet.tweet.entities.media?.media_url
-        ? [createMediaField('Media', tweet.tweet.entities.media.media_url)]
+      ...(tweet.tweet.entities.user_mentions
+        ? [createMentionsField(tweet.tweet.entities.user_mentions.map(createPersonNode))]
         : []),
+      // If there is a quote tweet, create a quote tweet field and put it in the children array
+      // write the above function with a ternary operator
+      // ...(findQuoteTweet(tweet)
+      //   ? [createFieldFromNodes('QTs', [createTweetNode(findMatchingTweet(findQuoteTweet(tweet)))])]
+      //   : []),
+      // I think I need to rewrite the above to work in the case of a tweet with multiple quote tweets
+      ...(extractQuoteTweetID(tweet)
+        ? [
+            createFieldFromNodes(
+              'QTs',
+              extractQuoteTweetID(tweet).map((x: string) => createTweetNode(findMatchingTweet(x)!)),
+            ),
+          ]
+        : []),
+
+      // To do: if there is a media url, create a media field and put it in the children array
+      ...(tweet.tweet.entities.media
+        ? [
+            createMediaField(
+              tweet.tweet.entities.media.map((media: { media_url_https: string }) => media.media_url_https),
+            ),
+          ]
+        : []),
+
       {
         uid: idgenerator(),
         name: 'Date',
@@ -166,12 +189,16 @@ function createTweetNode(tweet: Tweet): TanaIntermediateNode {
   };
 }
 
+// createTweetNode(findMatchingTweet("1325798636186296320"))
+
+// TODO add to createTweetNode function to create a quote tweet field
+
 export class TwitterConverter {
   // returns a triple with version, summary, and nodes
   // name of the function, 0 or more arguments with their types, then the return type.
   // The bar undefined means it's a union of the TanaIntermediateFile and undefined. Could return either.
   convert(fileContent: string): TanaIntermediateFile | undefined {
-    const json = JSON.parse(fileContent);
+    json = JSON.parse(fileContent);
     //trying to make a map
     const attributes = [
       {
@@ -209,6 +236,11 @@ export class TwitterConverter {
         values: [],
         count: 1,
       },
+      {
+        name: 'QTs',
+        values: [],
+        count: 1,
+      },
     ];
     const supertags = [
       {
@@ -233,20 +265,20 @@ export class TwitterConverter {
     console.log(
       json
         .slice(0, 300)
-        .map(findQuoteTweet)
+        .map(extractQuoteTweetID)
         .flat()
         .filter((el: string | undefined) => typeof el === 'string'),
     );
 
     const quoteTweets = json
       .slice(0, 300)
-      .map(findQuoteTweet)
+      .map(extractQuoteTweetID)
       .flat()
       .filter((el: string | undefined) => typeof el === 'string');
 
-    // if a quote tweet has an ? in it, remove the ? and all the text after it from the string. Return the new array.
-    const quoteTweetsNoQuestionMarks = quoteTweets.map((qt: any) => qt.split('?')[0]);
-    console.log(quoteTweetsNoQuestionMarks);
+    console.log(quoteTweets);
+    console.log(findMatchingTweet('1325798636186296320'));
+    console.log(createTweetNode(findMatchingTweet('1325798636186296320')!));
 
     // Map takes a function reference, and applies it to each element in the array.
     // If I called the function, then the outcome of that function is what's used.
@@ -269,6 +301,7 @@ export class TwitterConverter {
       summary,
       nodes,
       attributes,
+      supertags,
     };
   }
 }

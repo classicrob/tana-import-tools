@@ -36,11 +36,11 @@ export function createMentionsField(node: TanaIntermediateNode | TanaIntermediat
   };
 }
 
-export function createMediaField(name: string, value: string | string[]): TanaIntermediateNode {
+export function createMediaField(value: string | string[]): TanaIntermediateNode {
   const valueArray = Array.isArray(value) ? value : [value];
   return {
-    uid: idgenerator(),
-    name: name,
+    uid: 'media',
+    name: 'Media',
     createdAt: new Date().getTime(),
     editedAt: new Date().getTime(),
     type: 'field',
@@ -55,5 +55,16 @@ export function createMediaField(name: string, value: string | string[]): TanaIn
         mediaUrl: value,
       };
     }),
+  };
+}
+
+export function createFieldFromNodes(name: string, nodes: TanaIntermediateNode[]): TanaIntermediateNode {
+  return {
+    uid: name,
+    name: name,
+    createdAt: new Date().getTime(),
+    editedAt: new Date().getTime(),
+    type: 'field',
+    children: nodes,
   };
 }
